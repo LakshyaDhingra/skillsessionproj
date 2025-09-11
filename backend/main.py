@@ -82,7 +82,7 @@ def generate_image_for_text(text: str, story_theme: str, part_number: int) -> st
     """
     
     try:
-        print(f"Generating image for part {part_number} with prompt: {image_prompt[:100]}...")
+        print(f"🎨 Generating image for part {part_number}...")
         
         response = client.models.generate_content(
             model="gemini-2.5-flash-image-preview",
@@ -104,7 +104,16 @@ def generate_image_for_text(text: str, story_theme: str, part_number: int) -> st
         return create_placeholder_image(part_number)
         
     except Exception as e:
-        print(f"❌ Error generating image for part {part_number}: {e}")
+        error_message = str(e)
+        
+        # Check for quota exhaustion
+        if "429" in error_message or "RESOURCE_EXHAUSTED" in error_message:
+            print(f"⚠️ API quota exhausted for part {part_number} - using placeholder")
+        elif "quota" in error_message.lower():
+            print(f"⚠️ Quota limit reached for part {part_number} - using placeholder")
+        else:
+            print(f"❌ Error generating image for part {part_number}: {e}")
+        
         return create_placeholder_image(part_number)
 
 def create_placeholder_image(part_number: int) -> str:
@@ -168,22 +177,31 @@ async def generate_story(request: StoryRequest):
         story_prompt = f"""
         Create a magical children's story based on this idea: {request.prompt}
         
-        IMPORTANT: Return your response as a JSON object with this exact structure:
+        CRITICAL: Return ONLY valid JSON. Do NOT use string concatenation with + operators.
+        
+        Return your response as a valid JSON object with this exact structure:
         {{
             "title": "Story Title Here",
             "parts": [
-                {{"part_number": 1, "content": "## Part 1 Title\\n\\nStory content with **bold text** here..."}},
-                {{"part_number": 2, "content": "## Part 2 Title\\n\\nMore story content..."}},
-                ... (exactly 8 parts total)
+                {{"part_number": 1, "content": "## Part 1 Title\\n\\nStory content with **bold text** here. Keep each content as one continuous string without + operators."}},
+                {{"part_number": 2, "content": "## Part 2 Title\\n\\nMore story content in one string..."}},
+                {{"part_number": 3, "content": "## Part 3 Title\\n\\nContinue the story..."}},
+                {{"part_number": 4, "content": "## Part 4 Title\\n\\nMiddle of the adventure..."}},
+                {{"part_number": 5, "content": "## Part 5 Title\\n\\nBuilding to climax..."}},
+                {{"part_number": 6, "content": "## Part 6 Title\\n\\nThe climax moment..."}},
+                {{"part_number": 7, "content": "## Part 7 Title\\n\\nResolution begins..."}},
+                {{"part_number": 8, "content": "## Part 8 Title\\n\\nHappy ending conclusion..."}}
             ]
         }}
         
         Requirements:
-        - Create exactly 8 parts
+        - Create exactly 8 parts as shown above
+        - Each content must be ONE continuous string (no + concatenation)
         - Each part should be 2-4 sentences
         - Use markdown: ## for headers, **text** for bold
         - Make it engaging for children aged 4-12
         - Each part should be descriptive for illustration
+        - Return ONLY the JSON, no extra text or markdown formatting
         """
         
         response = client.models.generate_content(
@@ -207,7 +225,13 @@ async def generate_story(request: StoryRequest):
             elif response_text.startswith('```'):
                 response_text = response_text.replace('```', '').strip()
             
-            print(f"📝 Raw response: {response_text[:200]}...")
+            # Fix JavaScript-style string concatenation that Gemini sometimes generates
+            # Replace patterns like "text" + "more text" with "textmore text"
+            import re
+            response_text = re.sub(r'"\s*\+\s*"', '', response_text)
+            response_text = re.sub(r'"\s*\+\s*"\n', '', response_text)
+            
+            print(f"📝 Cleaned response: {response_text[:200]}...")
             
             story_json = json.loads(response_text)
             
@@ -271,23 +295,42 @@ async def generate_story(request: StoryRequest):
         story_response_parts = []
         max_image_calls = min(8, 15 - 1)  # Reserve 1 call for story generation
         
-        for i, part_text in enumerate(story_parts[:max_image_calls]):
-            print(f"🎨 Generating image for part {i+1}/{len(story_parts)}")
-            try:
-                image_data = generate_image_for_text(part_text, request.prompt, i+1)
-                story_response_parts.append(StoryPart(
-                    text=part_text,
-                    image=image_data
-                ))
-            except Exception as e:
-                print(f"Error generating image for part {i+1}: {e}")
-                # Use placeholder if image generation fails
-                story_response_parts.append(StoryPart(
-                    text=part_text,
-                    image=create_placeholder_image(i+1)
-                ))
+        # Track quota exhaustion to avoid unnecessary API calls
+        quota_exhausted = False
         
-        print(f"✅ Generated {len(story_response_parts)} story parts with images")
+        for i, part_text in enumerate(story_parts[:max_image_calls]):
+            if quota_exhausted:
+                print(f"⚠️ Skipping image generation for part {i+1} due to quota exhaustion")
+                image_data = create_placeholder_image(i+1)
+            else:
+                print(f"🎨 Generating image for part {i+1}/{len(story_parts)}")
+                try:
+                    image_data = generate_image_for_text(part_text, request.prompt, i+1)
+                    
+                    # Check if we got a placeholder (indicates quota exhaustion)
+                    if image_data.startswith("data:image/svg+xml"):
+                        quota_exhausted = True
+                        
+                except Exception as e:
+                    error_message = str(e)
+                    if "429" in error_message or "RESOURCE_EXHAUSTED" in error_message or "quota" in error_message.lower():
+                        print(f"⚠️ API quota exhausted - will use placeholders for remaining images")
+                        quota_exhausted = True
+                    else:
+                        print(f"❌ Error generating image for part {i+1}: {e}")
+                    
+                    image_data = create_placeholder_image(i+1)
+            
+            story_response_parts.append(StoryPart(
+                text=part_text,
+                image=image_data
+            ))
+        
+        images_generated = sum(1 for part in story_response_parts if part.image.startswith('data:image/png'))
+        placeholders_used = len(story_response_parts) - images_generated
+        
+        print(f"✅ Generated {len(story_response_parts)} story parts")
+        print(f"🖼️ Real images: {images_generated}, Placeholders: {placeholders_used}")
         
         return StoryResponse(
             title=title,
