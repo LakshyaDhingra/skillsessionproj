@@ -79,6 +79,8 @@ def generate_image_for_text(text: str, story_theme: str, part_number: int) -> st
     - Storybook illustration style
     
     Make sure the image clearly represents the key elements and mood of this story part.
+    
+    Please also provide a brief description of the generated image.
     """
     
     try:
@@ -88,17 +90,29 @@ def generate_image_for_text(text: str, story_theme: str, part_number: int) -> st
             model="gemini-2.0-flash-preview-image-generation",
             contents=[image_prompt],
             config=types.GenerateContentConfig(
+                response_modalities=["TEXT", "IMAGE"],
                 temperature=0.7  # Slightly more consistent but still creative
             )
         )
         
         if response.candidates and len(response.candidates) > 0:
+            image_found = False
+            text_description = ""
+            
             for part in response.candidates[0].content.parts:
-                if part.inline_data is not None:
+                if part.text is not None:
+                    text_description = part.text
+                    print(f"📝 Image description: {text_description[:100]}...")
+                elif part.inline_data is not None:
                     # Convert image data to base64
                     image_data = base64.b64encode(part.inline_data.data).decode('utf-8')
-                    print(f"Successfully generated image for part {part_number}")
+                    print(f"✅ Successfully generated image for part {part_number}")
+                    image_found = True
                     return f"data:image/png;base64,{image_data}"
+            
+            if not image_found:
+                print(f"⚠️ No image data found in response for part {part_number}")
+                return create_placeholder_image(part_number)
         
         print(f"No image data found in response for part {part_number}")
         return create_placeholder_image(part_number)
