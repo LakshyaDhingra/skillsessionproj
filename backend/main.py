@@ -85,7 +85,7 @@ def generate_image_for_text(text: str, story_theme: str, part_number: int) -> st
         print(f"🎨 Generating image for part {part_number}...")
         
         response = client.models.generate_content(
-            model="gemini-2.5-flash-image-preview",
+            model="gemini-2.0-flash-preview-image-generation",
             contents=[image_prompt],
             config=types.GenerateContentConfig(
                 temperature=0.7  # Slightly more consistent but still creative
@@ -97,22 +97,15 @@ def generate_image_for_text(text: str, story_theme: str, part_number: int) -> st
                 if part.inline_data is not None:
                     # Convert image data to base64
                     image_data = base64.b64encode(part.inline_data.data).decode('utf-8')
-                    print(f"✅ Successfully generated image for part {part_number}")
+                    print(f"Successfully generated image for part {part_number}")
                     return f"data:image/png;base64,{image_data}"
         
-        print(f"⚠️ No image data found in response for part {part_number}")
+        print(f"No image data found in response for part {part_number}")
         return create_placeholder_image(part_number)
         
     except Exception as e:
         error_message = str(e)
-        
-        # Check for quota exhaustion
-        if "429" in error_message or "RESOURCE_EXHAUSTED" in error_message:
-            print(f"⚠️ API quota exhausted for part {part_number} - using placeholder")
-        elif "quota" in error_message.lower():
-            print(f"⚠️ Quota limit reached for part {part_number} - using placeholder")
-        else:
-            print(f"❌ Error generating image for part {part_number}: {e}")
+        print(f"Error generating image for part {part_number}: {error_message}...")
         
         return create_placeholder_image(part_number)
 
