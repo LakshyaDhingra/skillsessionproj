@@ -1,288 +1,162 @@
-// Main App Component
-// This is the root component of our React application
-
-import React, { useState } from 'react';
-import './App.css';
-
-// Import our custom UI components
-import Button from './components/ui/button.jsx';
-import { Card, CardHeader, CardTitle, CardContent } from './components/ui/card.jsx';
-import Input from './components/ui/input.jsx';
+import { useState } from 'react'
+import Book from './components/Book'
+import PromptBar from './components/PromptBar'
+import NavigationButtons from './components/NavigationButtons'
+import Particles from './components/ui/particles'
 
 /**
- * Main App Component
- * This component manages the entire application state and renders the UI
+ * Main App component for the Story Generator
+ * Manages story state, page navigation, and API communication
  */
 function App() {
-  // State for user input (story prompt)
-  const [prompt, setPrompt] = useState('');
-  
-  // State to track if we're currently generating a story
-  const [isGenerating, setIsGenerating] = useState(false);
-  
-  // State to store the generated story
-  const [generatedStory, setGeneratedStory] = useState(null);
-  
-  // State for error handling
-  const [error, setError] = useState(null);
-  
-  // State to control whether to show the story book view
-  const [showBook, setShowBook] = useState(false);
-  
-  // State for current page in the story book
-  const [currentPage, setCurrentPage] = useState(0);
+  // Story state management
+  const [story, setStory] = useState(null)
+  const [currentPage, setCurrentPage] = useState(1)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState(null)
+
+  // API base URL - adjust if your backend runs on different port
+  const API_BASE_URL = 'http://localhost:8000'
 
   /**
-   * Function to handle story generation
-   * Sends a request to the backend API to generate a story
+   * Generate story from user prompt
+   * Calls backend API and updates story state
    */
-  const handleGenerateStory = async () => {
-    // Don't proceed if prompt is empty
-    if (!prompt.trim()) {
-      setError('Please enter a story idea!');
-      return;
-    }
-
-    // Reset error state and start generating
-    setError(null);
-    setIsGenerating(true);
+  const handleGenerateStory = async (prompt) => {
+    setIsLoading(true)
+    setError(null)
+    setCurrentPage(1) // Reset to first page
     
     try {
-      // Make API call to backend
-      const response = await fetch('http://localhost:8000/generate', {
+      const response = await fetch(`${API_BASE_URL}/generate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt: prompt.trim() }),
-      });
+        body: JSON.stringify({ prompt }),
+      })
 
-      // Check if request was successful
       if (!response.ok) {
-        throw new Error(`Failed to generate story: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status}`)
       }
 
-      // Parse the response
-      const story = await response.json();
-      
-      // Update state with the generated story
-      setGeneratedStory(story);
-      setShowBook(true);
-      setCurrentPage(0);
-      
-    } catch (error) {
-      console.error('Error generating story:', error);
-      setError(error.message || 'Failed to generate story. Make sure the backend server is running.');
+      const storyData = await response.json()
+      setStory(storyData)
+    } catch (err) {
+      console.error('Error generating story:', err)
+      setError('Failed to generate story. Please try again.')
     } finally {
-      // Always stop the loading state
-      setIsGenerating(false);
+      setIsLoading(false)
     }
-  };
-
-  /**
-   * Function to go to the next page in the story book
-   */
-  const nextPage = () => {
-    if (generatedStory && currentPage < generatedStory.parts.length - 1) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  /**
-   * Function to go to the previous page in the story book
-   */
-  const prevPage = () => {
-    if (currentPage > 0) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  /**
-   * Function to reset and go back to the main screen
-   */
-  const resetToHome = () => {
-    setShowBook(false);
-    setPrompt('');
-    setCurrentPage(0);
-    setGeneratedStory(null);
-    setError(null);
-  };
-
-  // Sample example prompts to inspire users
-  const examplePrompts = [
-    "A brave princess who saves dragons",
-    "A magical tree that grants wishes", 
-    "A robot who learns to paint"
-  ];
-
-  // If we're showing the story book, render the book view
-  if (showBook && generatedStory) {
-    const currentStoryPart = generatedStory.parts[currentPage];
-    
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 p-4">
-        <div className="max-w-4xl mx-auto">
-          {/* Header with back button and title */}
-          <div className="flex justify-between items-center mb-8">
-            <Button onClick={resetToHome} variant="outline">
-              ← Back to Generator
-            </Button>
-            <div className="text-center">
-              <h1 className="text-3xl font-bold text-purple-800">
-                {generatedStory.title}
-              </h1>
-              <p className="text-gray-600">
-                Page {currentPage + 1} of {generatedStory.parts.length}
-              </p>
-            </div>
-            <div className="w-32"></div> {/* Spacer for centering */}
-          </div>
-
-          {/* Story book card */}
-          <Card className="bg-white shadow-lg">
-            <div className="grid md:grid-cols-2 min-h-[500px]">
-              {/* Text side */}
-              <div className="p-8 flex flex-col justify-center bg-yellow-50">
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold text-purple-800">
-                    Chapter {currentPage + 1}
-                  </h2>
-                  <p className="text-lg leading-relaxed text-gray-800">
-                    {currentStoryPart.text}
-                  </p>
-                </div>
-              </div>
-              
-              {/* Image side */}
-              <div className="p-8 flex items-center justify-center bg-blue-50">
-                <div className="w-full max-w-sm aspect-square bg-white rounded-lg shadow-md flex items-center justify-center">
-                  {currentStoryPart.image && currentStoryPart.image.startsWith('data:') ? (
-                    <img
-                      src={currentStoryPart.image}
-                      alt={`Story illustration for page ${currentPage + 1}`}
-                      className="w-full h-full object-contain rounded-lg"
-                    />
-                  ) : (
-                    <div className="text-gray-500 text-center">
-                      <p>Story Illustration</p>
-                      <p className="text-sm">Page {currentPage + 1}</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Navigation */}
-            <div className="flex justify-between items-center p-6 bg-gray-50">
-              <Button 
-                onClick={prevPage}
-                disabled={currentPage === 0}
-                variant="outline"
-              >
-                ← Previous
-              </Button>
-              
-              {/* Page indicators */}
-              <div className="flex gap-2">
-                {generatedStory.parts.map((_, index) => (
-                  <button
-                    key={index}
-                    onClick={() => setCurrentPage(index)}
-                    className={`w-3 h-3 rounded-full transition-colors ${
-                      index === currentPage 
-                        ? 'bg-purple-600' 
-                        : 'bg-gray-300 hover:bg-gray-400'
-                    }`}
-                  />
-                ))}
-              </div>
-              
-              <Button 
-                onClick={nextPage}
-                disabled={currentPage === generatedStory.parts.length - 1}
-                variant="outline"
-              >
-                Next →
-              </Button>
-            </div>
-          </Card>
-        </div>
-      </div>
-    );
   }
 
-  // Main generator screen
+  /**
+   * Navigate to previous page
+   */
+  const handlePreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1)
+    }
+  }
+
+  /**
+   * Navigate to next page
+   */
+  const handleNextPage = () => {
+    if (story && currentPage < story.parts.length) {
+      setCurrentPage(currentPage + 1)
+    }
+  }
+
+  // Get current page content and image
+  const getCurrentContent = () => {
+    if (!story || !story.parts[currentPage - 1]) {
+      return { content: '', image: '' }
+    }
+    
+    const currentPart = story.parts[currentPage - 1]
+    return {
+      content: currentPart.text,
+      image: currentPart.image
+    }
+  }
+
+  const { content, image } = getCurrentContent()
+  const totalPages = story ? story.parts.length : 8
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-100 to-blue-100 flex items-center justify-center p-4">
-      <div className="max-w-2xl w-full space-y-8">
-        {/* Header */}
-        <div className="text-center space-y-4">
-          <h1 className="text-5xl font-bold text-purple-800">
-            ✨ Magical Story Generator
-          </h1>
-          <p className="text-xl text-gray-600">
-            Tell me what kind of story you'd like, and I'll create a magical adventure just for you!
-          </p>
-        </div>
+    <>
+    <div className='h-screen w-screen flex flex-col items-center justify-center bg-black'>
 
-        {/* Error Display */}
+      <div className="relative z-10">
+        {/* Error Message */}
         {error && (
-          <Card className="p-4 bg-red-50 border-2 border-red-200">
-            <p className="text-red-800 font-medium">⚠️ {error}</p>
-          </Card>
-        )}
-
-        {/* Story Input Form */}
-        <Card className="p-8 bg-white shadow-lg">
-          <CardHeader>
-            <CardTitle>What's your story idea? ⭐</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <Input
-              placeholder="A brave princess who saves dragons, a magical tree that grants wishes, a robot who learns to paint..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              disabled={isGenerating}
-              className="text-lg p-4 h-14"
-            />
-            
-            <Button
-              onClick={handleGenerateStory}
-              disabled={!prompt.trim() || isGenerating}
-              className="w-full h-14 text-lg font-semibold"
-            >
-              {isGenerating ? (
-                <span>🎨 Creating Your Magical Story...</span>
-              ) : (
-                <span>🪄 Generate My Story!</span>
-              )}
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Example Prompts */}
-        <div className="text-center space-y-4">
-          <p className="text-gray-600">
-            ✨ Need inspiration? Try these magical ideas:
-          </p>
-          <div className="flex flex-wrap justify-center gap-3">
-            {examplePrompts.map((example, index) => (
-              <Button
-                key={index}
-                variant="outline"
-                size="sm"
-                onClick={() => setPrompt(example)}
-                disabled={isGenerating}
-                className="text-purple-700 border-purple-300 hover:bg-purple-50"
+          <div className="fixed top-20 left-1/2 transform -translate-x-1/2 z-30">
+            <div className="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded-lg shadow-lg">
+              <p>{error}</p>
+              <button 
+                onClick={() => setError(null)}
+                className="ml-2 text-red-800 hover:text-red-900 font-bold"
               >
-                {example}
-              </Button>
-            ))}
+                ×
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
+        
+      <div className="absolute inset-0 z-0">
+        <Particles
+          particleColors={['#ffffff', '#ffffff']}
+          particleCount={200}
+          particleSpread={10}
+          speed={0.1}
+          particleBaseSize={100}
+          moveParticlesOnHover={true}
+          alphaParticles={false}
+          disableRotation={false}
+        />
     </div>
-  );
+
+      {/* title of the app */}
+      <div className='mb-8 text-center'>
+        <h1 className='text-7xl font-bold text-white-800'>Story Generator</h1>
+      </div>
+
+      {/* Main Book Display */}
+      <div className="relative">
+        <Book
+          leftContent={content}
+          rightImage={image}
+          currentPage={currentPage}
+          totalPages={totalPages}
+        />
+      </div>
+
+      {/* Navigation Buttons */}
+      <NavigationButtons
+        currentPage={currentPage}
+        totalPages={totalPages}
+        onPrevious={handlePreviousPage}
+        onNext={handleNextPage}
+        hasStory={!!story}
+      />
+
+      {/* Prompt Input Bar */}
+      <PromptBar
+        onGenerate={handleGenerateStory}
+        isLoading={isLoading}
+      />
+
+      {/* Footer */}
+      <footer className="fixed bottom-2 right-4 text-xs text-gray-400">
+        Powered by Gemini AI
+      </footer>
+
+    </div>
+  
+  </>
+  )
 }
 
-export default App;
+export default App

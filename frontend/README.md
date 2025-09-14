@@ -1,83 +1,12 @@
-# Magical Story Generator - Frontend
+# React + Vite
 
-A React application that generates magical stories with illustrations using AI.
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
-## Project Structure
+Currently, two official plugins are available:
 
-```
-src/
-├── components/
-│   └── ui/
-│       ├── button.jsx      # Reusable button component
-│       ├── card.jsx        # Card components for layouts
-│       └── input.jsx       # Input field component
-├── App.jsx                 # Main application component
-├── main.jsx               # Application entry point
-├── App.css                # App-specific styles
-└── index.css              # Global styles
-```
+- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
+- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
 
-## Components
+## Expanding the ESLint configuration
 
-### Button (`components/ui/button.jsx`)
-- Simple, reusable button component
-- Supports different variants: `default`, `outline`, `secondary`, `destructive`
-- Supports different sizes: `sm`, `default`, `lg`
-- Fully accessible with focus states
-
-### Card (`components/ui/card.jsx`)
-- Set of card components for creating containers
-- Includes: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`
-- Responsive design with hover effects
-
-### Input (`components/ui/input.jsx`)
-- Styled input field component
-- Supports all standard input types
-- Consistent styling with focus states
-
-### App (`App.jsx`)
-- Main application component
-- Handles story generation and display
-- Two main views: Generator and Story Book
-- Connects to backend API at `http://localhost:8000`
-
-## Features
-
-1. **Story Generator**: Users can input story ideas and generate magical stories
-2. **Story Book View**: Generated stories are displayed in a beautiful book layout
-3. **Page Navigation**: Users can navigate through story pages
-4. **Responsive Design**: Works on desktop and mobile devices
-5. **Error Handling**: Displays helpful error messages
-6. **Loading States**: Shows progress during story generation
-
-## API Integration
-
-The frontend connects to a backend API with the following endpoint:
-- `POST /generate` - Generates a story based on user prompt
-
-Expected response format:
-```json
-{
-  "title": "Story Title",
-  "parts": [
-    {
-      "text": "Story text for this part",
-      "image": "base64_encoded_image_or_url"
-    }
-  ]
-}
-```
-
-## Development
-
-1. Install dependencies: `npm install`
-2. Start development server: `npm run dev`
-3. Build for production: `npm run build`
-
-## Styling
-
-- Uses vanilla CSS with utility classes
-- Responsive design with mobile-first approach
-- Smooth animations and transitions
-- Accessible focus states
-- Beautiful gradients and shadows
+If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
