@@ -1,0 +1,186 @@
+/* App-specific CSS Styles */
+/* This file contains styles specific to our Story Generator App */
+
+/* App container styles */
+.App {
+  width: 100%;
+  min-height: 100vh;
+}
+
+/* Gradient backgrounds for different sections */
+.gradient-purple-blue {
+  background: linear-gradient(135deg, #e0e7ff 0%, #fce7f3 50%, #dbeafe 100%);
+}
+
+.gradient-yellow-orange {
+  background: linear-gradient(135deg, #fefce8 0%, #fed7aa 50%, #fce7f3 100%);
+}
+
+.gradient-blue-purple {
+  background: linear-gradient(135deg, #dbeafe 0%, #e0e7ff 50%, #ede9fe 100%);
+}
+
+/* Card hover effects */
+.card-hover {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.card-hover:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* Button loading state */
+.button-loading {
+  position: relative;
+  color: transparent;
+}
+
+.button-loading::after {
+  content: '';
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  top: 50%;
+  left: 50%;
+  margin-left: -8px;
+  margin-top: -8px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+  border-top-color: transparent;
+  animation: spin 1s linear infinite;
+}
+
+/* Page transition animations */
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.slide-in-left {
+  animation: slideInLeft 0.6s ease-out;
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.6s ease-out;
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* Story book specific styles */
+.story-book {
+  perspective: 1000px;
+}
+
+.story-page {
+  transition: transform 0.3s ease-in-out;
+}
+
+.story-page:hover {
+  transform: translateZ(5px);
+}
+
+/* Page indicator styles */
+.page-indicator {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.page-indicator:hover {
+  transform: scale(1.2);
+}
+
+.page-indicator.active {
+  background: linear-gradient(45deg, #8b5cf6, #ec4899);
+}
+
+/* Error message styles */
+.error-message {
+  border-left: 4px solid #ef4444;
+  background-color: #fef2f2;
+  border: 1px solid #fecaca;
+}
+
+/* Success message styles */
+.success-message {
+  border-left: 4px solid #10b981;
+  background-color: #f0fdf4;
+  border: 1px solid #bbf7d0;
+}
+
+/* Loading spinner */
+.spinner {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #f3f4f6;
+  border-top: 2px solid #3b82f6;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .story-book {
+    perspective: none;
+  }
+  
+  .story-page {
+    transform: none;
+  }
+  
+  .story-page:hover {
+    transform: none;
+  }
+}
+
+/* Focus styles for accessibility */
+.focus-visible {
+  outline: 2px solid #3b82f6;
+  outline-offset: 2px;
+}
+
+/* Text selection styles */
+::selection {
+  background-color: #ddd6fe;
+  color: #5b21b6;
+}
+
+/* Smooth transitions for all interactive elements */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}

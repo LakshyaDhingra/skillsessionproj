@@ -1,36 +1,83 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Magical Story Generator - Frontend
 
-## Getting Started
+A React application that generates magical stories with illustrations using AI.
 
-First, run the development server:
+## Project Structure
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+```
+src/
+├── components/
+│   └── ui/
+│       ├── button.jsx      # Reusable button component
+│       ├── card.jsx        # Card components for layouts
+│       └── input.jsx       # Input field component
+├── App.jsx                 # Main application component
+├── main.jsx               # Application entry point
+├── App.css                # App-specific styles
+└── index.css              # Global styles
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Components
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Button (`components/ui/button.jsx`)
+- Simple, reusable button component
+- Supports different variants: `default`, `outline`, `secondary`, `destructive`
+- Supports different sizes: `sm`, `default`, `lg`
+- Fully accessible with focus states
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### Card (`components/ui/card.jsx`)
+- Set of card components for creating containers
+- Includes: `Card`, `CardHeader`, `CardTitle`, `CardDescription`, `CardContent`, `CardFooter`
+- Responsive design with hover effects
 
-## Learn More
+### Input (`components/ui/input.jsx`)
+- Styled input field component
+- Supports all standard input types
+- Consistent styling with focus states
 
-To learn more about Next.js, take a look at the following resources:
+### App (`App.jsx`)
+- Main application component
+- Handles story generation and display
+- Two main views: Generator and Story Book
+- Connects to backend API at `http://localhost:8000`
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+1. **Story Generator**: Users can input story ideas and generate magical stories
+2. **Story Book View**: Generated stories are displayed in a beautiful book layout
+3. **Page Navigation**: Users can navigate through story pages
+4. **Responsive Design**: Works on desktop and mobile devices
+5. **Error Handling**: Displays helpful error messages
+6. **Loading States**: Shows progress during story generation
 
-## Deploy on Vercel
+## API Integration
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+The frontend connects to a backend API with the following endpoint:
+- `POST /generate` - Generates a story based on user prompt
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Expected response format:
+```json
+{
+  "title": "Story Title",
+  "parts": [
+    {
+      "text": "Story text for this part",
+      "image": "base64_encoded_image_or_url"
+    }
+  ]
+}
+```
+
+## Development
+
+1. Install dependencies: `npm install`
+2. Start development server: `npm run dev`
+3. Build for production: `npm run build`
+
+## Styling
+
+- Uses vanilla CSS with utility classes
+- Responsive design with mobile-first approach
+- Smooth animations and transitions
+- Accessible focus states
+- Beautiful gradients and shadows
