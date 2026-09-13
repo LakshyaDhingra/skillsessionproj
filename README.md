@@ -5,9 +5,9 @@ A full-stack application that generates beautiful, illustrated children's storie
 ## ✨ Features
 
 - 🎨 **AI Story Generation**: Creates engaging, age-appropriate stories using Gemini 2.5 Flash with structured output
-- 🖼️ **AI Image Generation**: Generates beautiful illustrations for each story part with enhanced prompts
+- 🖼️ **AI Image Generation**: Generates beautiful illustrations for each story part with enhanced prompts using Pollinations AI
 - 📚 **Interactive Story Reader**: Beautiful book-like interface with page turning animations
-- 📝 **Markdown Rendering**: Support for headers (##) and bold text (**) in stories
+- 📝 **Markdown Rendering**: Support for headers (##) and bold text (\*\*) in stories
 - 🎭 **Magical UI**: Animated, child-friendly interface with sparkles and floating elements
 - 📱 **Responsive Design**: Works perfectly on desktop, tablet, and mobile devices
 - ⚡ **Optimized Performance**: Exactly 8 story parts, max 15 API calls, better error handling
@@ -54,7 +54,7 @@ cp .env.example .env
 # GEMINI_API_KEY=your_actual_api_key_here
 
 # Start the backend server
-python start.py
+python main.py
 ```
 
 The backend will start on `http://localhost:8000`
@@ -72,11 +72,11 @@ npm install
 npm run dev
 ```
 
-The frontend will start on `http://localhost:3001` (or 3000 if available)
+The frontend will start on `http://localhost:5173`
 
 ## 🎯 Usage
 
-1. **Open the application** in your browser at `http://localhost:3001`
+1. **Open the application** in your browser at `http://localhost:5173`
 2. **Enter a story prompt** like "A brave princess who saves dragons"
 3. **Click "Generate My Story!"** and wait for the magic to happen
 4. **Enjoy your story** with beautiful AI-generated illustrations
@@ -89,6 +89,7 @@ The frontend will start on `http://localhost:3001` (or 3000 if available)
 Generates a complete story with images based on a prompt.
 
 **Request:**
+
 ```json
 {
   "prompt": "A magical adventure in space"
@@ -96,6 +97,7 @@ Generates a complete story with images based on a prompt.
 ```
 
 **Response:**
+
 ```json
 {
   "title": "The Cosmic Adventure",
@@ -113,7 +115,7 @@ Generates a complete story with images based on a prompt.
 The frontend includes custom UI components:
 
 - **Button**: Multiple variants with animations
-- **Input**: Styled input fields with focus states  
+- **Input**: Styled input fields with focus states
 - **Card**: Container components with backdrop effects
 
 All components are built with TypeScript and Tailwind CSS for consistency and maintainability.
@@ -126,15 +128,13 @@ All components are built with TypeScript and Tailwind CSS for consistency and ma
 cd frontend
 npm run dev      # Start development server
 npm run build    # Build for production
-npm run lint     # Run linting
 ```
 
 ### Backend Development
 
 ```bash
 cd backend
-python start.py  # Start with checks
-# OR
+
 python main.py   # Direct start
 # OR
 uvicorn main:app --reload  # With auto-reload
@@ -187,6 +187,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 ## 📚 Technology Stack
 
 ### Frontend
+
 - **Next.js 15** - React framework
 - **TypeScript** - Type safety
 - **Tailwind CSS** - Styling
@@ -194,6 +195,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 - **Custom UI Components** - Reusable components
 
 ### Backend
+
 - **FastAPI** - Python web framework
 - **Google Gemini API** - AI text and image generation
 - **Pydantic** - Data validation
@@ -202,14 +204,16 @@ GEMINI_API_KEY=your_gemini_api_key_here
 ## 🎉 Features in Detail
 
 ### Story Generation
+
 - **Structured Output**: Exactly 8 parts per story using JSON schema
-- **Markdown Support**: Headers (##) and bold text (**) for better formatting
+- **Markdown Support**: Headers (##) and bold text (\*\*) for better formatting
 - **Child-appropriate content** with positive themes
 - **Consistent structure** with clear beginning, middle, and end
 - **Vivid descriptions** perfect for illustration
 - **Educational and inspiring** themes
 
 ### Image Generation
+
 - **Enhanced prompts** for more relevant illustrations
 - **Colorful placeholders** when image generation fails
 - **Child-friendly art style** with magical themes
@@ -217,6 +221,7 @@ GEMINI_API_KEY=your_gemini_api_key_here
 - **Lazy loading** for better performance
 
 ### User Experience
+
 - Intuitive, magical interface
 - Responsive design for all devices
 - Smooth animations and transitions
