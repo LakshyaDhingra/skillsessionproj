@@ -1,13 +1,15 @@
 # Story Generator Backend
 
-A FastAPI backend that generates magical children's stories with AI-generated images using Google's Gemini API.
+A FastAPI backend that generates magical children's stories with Gemini and story illustrations with Pollinations.
 
 ## Setup
 
 1. **Install dependencies:**
 
    ```bash
-   pip install -r requirements.txt
+   python3.10 -m venv .venv
+   source .venv/bin/activate
+   python -m pip install -r requirements.txt
    ```
 
 2. **Set up environment variables:**
@@ -26,7 +28,12 @@ A FastAPI backend that generates magical children's stories with AI-generated im
    ```
 
    Windows:
+   ```bash
+   py -3.10 -m venv .venv
+   .venv\Scripts\activate
+   py -3.10 -m pip install -r requirements.txt
    py -3.10 main.py
+   ```
 
    Or using uvicorn directly:
 

@@ -35,7 +35,7 @@ bootcamp_project/
 ### Prerequisites
 
 - Node.js 18+ and npm
-- Python 3.8+
+- Python 3.10 recommended. This project was tested with Python 3.10; Python 3.11 may install different dependency versions.
 - Google Gemini API key ([Get one here](https://makersuite.google.com/app/apikey))
 
 ### 1. Backend Setup
@@ -44,8 +44,12 @@ bootcamp_project/
 # Navigate to backend directory
 cd backend
 
+# Optional but recommended: create a Python 3.10 virtual environment
+python3.10 -m venv .venv
+source .venv/bin/activate
+
 # Install Python dependencies
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 
 # Create environment file
 cp .env.example .env
