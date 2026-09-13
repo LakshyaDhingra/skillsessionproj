@@ -1,10 +1,16 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 
 /**
  * Book component that displays story content on left page and image on right page
  * Uses a book-like layout with shadow effects for depth
  */
 const Book = ({ leftContent = "", rightImage = "", currentPage = 1, totalPages = 8 }) => {
+  const [imageFailed, setImageFailed] = useState(false);
+
+  useEffect(() => {
+    setImageFailed(false);
+  }, [rightImage]);
+
   return (
     <div className="flex justify-center items-center min-h-full w-full bg-black p-8">
       {/* Book Container */}
@@ -61,11 +67,12 @@ const Book = ({ leftContent = "", rightImage = "", currentPage = 1, totalPages =
                 
                 {/* Image Area */}
                 <div className="flex-1 flex items-center justify-center bg-gray-100 rounded-lg overflow-hidden">
-                  {rightImage ? (
+                  {rightImage && !imageFailed ? (
                     <img 
                       src={rightImage} 
                       alt={`Story illustration for page ${currentPage}`}
                       className="w-full h-full object-cover rounded-lg"
+                      onError={() => setImageFailed(true)}
                     />
                   ) : (
                     <div className="text-center text-gray-400">

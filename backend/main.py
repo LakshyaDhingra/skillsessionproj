@@ -1,14 +1,14 @@
 """
 Story Generator API
 
-A FastAPI application that generates children's stories with accompanying images
-using Google's Gemini AI models. The API creates 8-part stories with magical themes
-suitable for children aged 4-12, generating both text content and illustrations.
+A FastAPI application that generates children's stories with accompanying images.
+The API creates 8-part stories with magical themes suitable for children aged
+4-12, using Gemini for story text and Pollinations for illustrations.
 
 Features:
 - Story generation using Gemini 2.5 Flash
-- Image generation using Gemini 2.0 Flash Preview
-- Fallback to placeholder images when quota is exhausted
+- Image URLs using Pollinations
+- Fallback to placeholder images when image URLs cannot be created
 - CORS enabled for frontend integration
 - Comprehensive error handling and logging
 """
@@ -17,10 +17,13 @@ import os
 import re
 import base64
 import json
+import hashlib
 import logging
 from typing import List
+from urllib.parse import urlencode, quote
+from urllib.request import Request, urlopen
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from google import genai
@@ -60,6 +63,16 @@ if not GEMINI_API_KEY:
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 logger.info("Gemini client initialized successfully")
+
+POLLINATIONS_IMAGE_BASE_URLS = [
+    url.strip().rstrip("/")
+    for url in os.getenv(
+        "POLLINATIONS_IMAGE_BASE_URLS",
+        "https://image.pollinations.ai/prompt,https://gen.pollinations.ai/image"
+    ).split(",")
+    if url.strip()
+]
+BACKEND_PUBLIC_URL = os.getenv("BACKEND_PUBLIC_URL", "http://localhost:8000")
 
 # Pydantic models
 class StoryRequest(BaseModel):
@@ -104,66 +117,88 @@ def create_placeholder_image(part_number: int) -> str:
     
     return f"data:image/svg+xml;base64,{base64.b64encode(svg.encode()).decode()}"
 
-def generate_image_for_text(text: str, story_theme: str, part_number: int) -> str:
-    """Generate an image based on the story text using Gemini image generation"""
-    # Remove markdown formatting for cleaner image generation
-    clean_text = re.sub(r'[#*]', '', text).strip()
-    
-    image_prompt = f"""
-    Create a beautiful, child-friendly illustration for part {part_number} of a children's story about {story_theme}.
-    
-    Scene description: {clean_text[:300]}
-    
-    Style requirements:
-    - Colorful and magical
-    - Suitable for children aged 4-12
-    - Warm and inviting atmosphere
-    - Digital art style with soft lighting
-    - Vibrant, cheerful colors
-    - High quality illustration
-    - Storybook illustration style
-    
-    Make sure the image clearly represents the key elements and mood of this story part.
-    """
-    
-    try:
-        logger.info(f"Generating image for part {part_number}")
-        
-        response = client.models.generate_content(
-            model="gemini-2.0-flash-preview-image-generation",
-            contents=[image_prompt],
-            config=types.GenerateContentConfig(
-                response_modalities=["TEXT", "IMAGE"],
-                temperature=0.7
-            )
-        )
-        
-        if response.candidates and len(response.candidates) > 0:
-            for part in response.candidates[0].content.parts:
-                if part.text is not None:
-                    logger.debug(f"Image description: {part.text[:100]}")
-                elif part.inline_data is not None:
-                    # Convert image data to base64
-                    image_data = base64.b64encode(part.inline_data.data).decode('utf-8')
-                    logger.info(f"Successfully generated image for part {part_number}")
-                    return f"data:image/png;base64,{image_data}"
-            
-            logger.warning(f"No image data found in response for part {part_number}")
-            return create_placeholder_image(part_number)
-        
-        logger.warning(f"No candidates found in response for part {part_number}")
-        return create_placeholder_image(part_number)
-        
-    except Exception as e:
-        logger.error(f"Error generating image for part {part_number}: {str(e)}")
-        return create_placeholder_image(part_number)
+def clean_story_text(text: str) -> str:
+    """Remove markdown and extra whitespace from generated story text."""
+    return re.sub(r'\s+', ' ', re.sub(r'[#*]', '', text)).strip()
 
+def generate_image_for_story_part(
+    story_parts: List[str],
+    story_theme: str,
+    part_number: int,
+) -> str:
+    """Create a Pollinations image URL for one page in the story sequence."""
+    part_index = part_number - 1
+    current_scene = clean_story_text(story_parts[part_index])
+    clean_theme = clean_story_text(story_theme)
+
+    seed_source = f"{clean_theme}|{part_number}|{current_scene}"
+    seed = int(hashlib.sha256(seed_source.encode("utf-8")).hexdigest()[:8], 16) % 2147483647
+
+    image_prompt = (
+        f"{clean_theme[:140]}. Page {part_number}: {current_scene[:220]}. "
+        "storybook illustration, red-haired hero if present, dragons if present, bridge if present, "
+        "dynamic action scene, colorful fantasy art, child friendly, no text"
+    )
+    query_params = urlencode({
+        "prompt": image_prompt,
+        "part": str(part_number),
+        "seed": str(seed),
+    })
+
+    logger.info(f"Using proxied Pollinations image URL for part {part_number}")
+    return f"{BACKEND_PUBLIC_URL}/image?{query_params}"
+
+def build_pollinations_image_urls(prompt: str, seed: int) -> List[str]:
+    """Build upstream Pollinations URL candidates."""
+    query_params = urlencode({
+        "width": "768",
+        "height": "768",
+        "model": "flux",
+        "seed": str(seed),
+    })
+
+    return [
+        f"{base_url}/{quote(prompt)}?{query_params}"
+        for base_url in POLLINATIONS_IMAGE_BASE_URLS
+    ]
 
 # API endpoints
 @app.get("/")
 async def root():
     """Health check endpoint"""
     return {"message": "Story Generator API is running!"}
+
+@app.get("/image")
+async def proxy_pollinations_image(prompt: str, seed: int, part: int = 1):
+    """Fetch a Pollinations image and return a real image response to the frontend."""
+    for upstream_url in build_pollinations_image_urls(prompt, seed):
+        try:
+            logger.info(f"Fetching Pollinations image for part {part}")
+            request = Request(
+                upstream_url,
+                headers={
+                    "User-Agent": "MagicalStoryGenerator/1.0",
+                    "Accept": "image/*",
+                },
+            )
+            with urlopen(request, timeout=60) as upstream_response:
+                content_type = upstream_response.headers.get("Content-Type", "image/jpeg")
+                image_bytes = upstream_response.read()
+
+            if content_type.startswith("image/") and image_bytes:
+                return Response(content=image_bytes, media_type=content_type)
+
+            logger.error(f"Pollinations returned non-image response: {content_type}")
+        except Exception as e:
+            logger.error(f"Pollinations image fetch failed for part {part}: {e}")
+
+    return _placeholder_response(part)
+
+def _placeholder_response(part_number: int) -> Response:
+    """Return the SVG placeholder as an HTTP image response."""
+    placeholder = create_placeholder_image(part_number)
+    svg_base64 = placeholder.split(",", 1)[1]
+    return Response(content=base64.b64decode(svg_base64), media_type="image/svg+xml")
 
 @app.post("/generate", response_model=StoryResponse)
 async def generate_story(request: StoryRequest):
@@ -258,6 +293,7 @@ async def _generate_story_content(prompt: str) -> dict:
         contents=[story_prompt],
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
+            response_mime_type="application/json",
             temperature=0.8,
             max_output_tokens=2000
         )
@@ -268,26 +304,14 @@ async def _generate_story_content(prompt: str) -> dict:
 def _parse_story_response(response) -> dict:
     """Parse the Gemini response into structured story data"""
     try:
-        # Clean the response text to ensure it's valid JSON
-        response_text = response.text.strip()
-        
-        # Remove markdown code block formatting if present
-        if response_text.startswith('```json'):
-            response_text = response_text.replace('```json', '').replace('```', '').strip()
-        elif response_text.startswith('```'):
-            response_text = response_text.replace('```', '').strip()
-        
-        # Fix JavaScript-style string concatenation that Gemini sometimes generates
-        response_text = re.sub(r'"\s*\+\s*"', '', response_text)
-        response_text = re.sub(r'"\s*\+\s*"\n', '', response_text)
-        
+        response_text = _clean_json_response(response.text)
         logger.debug(f"Cleaned response: {response_text[:200]}")
-        
+
         return json.loads(response_text)
         
     except json.JSONDecodeError as e:
         logger.error(f"JSON parsing error: {e}")
-        logger.debug(f"Raw response: {response.text}")
+        logger.warning(f"Raw response preview: {response.text[:500]}")
         
         # Fallback: create a story from the raw text
         logger.info("Falling back to text parsing")
@@ -315,6 +339,34 @@ def _parse_story_response(response) -> dict:
         logger.error(f"Unexpected error parsing response: {e}")
         raise HTTPException(status_code=500, detail=f"Failed to parse story structure: {str(e)}")
 
+def _clean_json_response(response_text: str) -> str:
+    """Clean common model formatting issues before JSON parsing."""
+    response_text = response_text.strip()
+
+    if response_text.startswith('```json'):
+        response_text = response_text.replace('```json', '', 1).strip()
+    if response_text.startswith('```'):
+        response_text = response_text.replace('```', '', 1).strip()
+    if response_text.endswith('```'):
+        response_text = response_text[:-3].strip()
+
+    json_start = response_text.find('{')
+    json_end = response_text.rfind('}')
+    if json_start != -1 and json_end != -1:
+        response_text = response_text[json_start:json_end + 1]
+
+    # Fix JavaScript-style string concatenation that Gemini sometimes generates.
+    response_text = re.sub(r'"\s*\+\s*"', '', response_text)
+    response_text = re.sub(r'"\s*\+\s*"\n', '', response_text)
+
+    # Fix trailing commas before closing arrays/objects.
+    response_text = re.sub(r',\s*([}\]])', r'\1', response_text)
+
+    # Fix occasional unquoted object keys, e.g. {title: "..."}.
+    response_text = re.sub(r'([{,]\s*)([A-Za-z_][A-Za-z0-9_]*)\s*:', r'\1"\2":', response_text)
+
+    return response_text
+
 def _ensure_eight_parts(parts_data: List[dict]) -> List[dict]:
     """Ensure the story has exactly 8 parts"""
     if len(parts_data) == 8:
@@ -341,36 +393,20 @@ async def _generate_story_images(story_parts: List[str], prompt: str) -> List[St
     """Generate images for each story part"""
     story_response_parts = []
     max_image_calls = min(8, 15 - 1)  # Reserve 1 call for story generation
-    quota_exhausted = False
     
     for i, part_text in enumerate(story_parts[:max_image_calls]):
-        if quota_exhausted:
-            logger.info(f"Skipping image generation for part {i+1} due to quota exhaustion")
+        try:
+            image_data = generate_image_for_story_part(story_parts, prompt, i+1)
+        except Exception as e:
+            logger.error(f"Error creating image URL for part {i+1}: {e}")
             image_data = create_placeholder_image(i+1)
-        else:
-            try:
-                image_data = generate_image_for_text(part_text, prompt, i+1)
-                
-                # Check if we got a placeholder (indicates quota exhaustion)
-                if image_data.startswith("data:image/svg+xml"):
-                    quota_exhausted = True
-                    
-            except Exception as e:
-                error_message = str(e)
-                if any(keyword in error_message.lower() for keyword in ["429", "resource_exhausted", "quota"]):
-                    logger.warning("API quota exhausted - will use placeholders for remaining images")
-                    quota_exhausted = True
-                else:
-                    logger.error(f"Error generating image for part {i+1}: {e}")
-                
-                image_data = create_placeholder_image(i+1)
         
         story_response_parts.append(StoryPart(
             text=part_text,
             image=image_data
         ))
     
-    images_generated = sum(1 for part in story_response_parts if part.image.startswith('data:image/png'))
+    images_generated = sum(1 for part in story_response_parts if not part.image.startswith('data:image/svg+xml'))
     placeholders_used = len(story_response_parts) - images_generated
     
     logger.info(f"Generated {len(story_response_parts)} story parts")
