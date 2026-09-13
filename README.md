@@ -59,6 +59,10 @@ cp .env.example .env
 
 # Start the backend server
 python main.py
+OR
+python3.xx main.py (If env python interpreter is not set to the correct one)
+OR
+py - 3.xx main.py (Windows Version)
 ```
 
 The backend will start on `http://localhost:8000`
