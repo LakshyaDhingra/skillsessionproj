@@ -24,7 +24,6 @@ skill_session_project/
 │   └── package.json
 ├── backend/           # FastAPI backend
 │   ├── main.py       # Main API server
-│   ├── start.py      # Startup script with checks
 │   ├── requirements.txt
 │   └── .env          # Environment variables
 └── README.md
