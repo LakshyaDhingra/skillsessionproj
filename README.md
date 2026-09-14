@@ -15,7 +15,7 @@ A full-stack application that generates beautiful, illustrated children's storie
 ## 🏗️ Project Structure
 
 ```
-bootcamp_project/
+skill_session_project/
 ├── frontend/          # Next.js React frontend
 │   ├── src/
 │   │   ├── app/
